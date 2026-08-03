@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Tournament Scoring</title>
+<style>
+:root{
+  --navy:#0a3161;
+  --navy-dark:#072348;
+  --navy-light:#14457f;
+  --jb:#0033a0;
+  --jb-bg:#e8eefb;
+  --ua:#c41e3a;
+  --ua-bg:#fdeaee;
+  --green:#1e7d33;
+  --green-bg:#e6f4e9;
+  --gold:#f5b80c;
+  --bg:#eef1f5;
+  --card:#ffffff;
+  --border:#d7dde6;
+  --text:#1c2733;
+  --muted:#5d6b7c;
+  --faint:#94a1b2;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+
+/* ===== Header ===== */
+.hdr{background:var(--navy);color:#fff;padding:0}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px}
+.hdr-title{font-size:17px;font-weight:700;letter-spacing:.3px}
+.hdr-sub{font-size:11px;color:#a9bdd6;letter-spacing:.5px;text-transform:uppercase;text-align:center;padding-bottom:6px}
+.hdr-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0px 16px 12px;gap:8px}
+.hs-team{display:flex;flex-direction:column;text-align:center}
+.hs-team.r{text-align:center}
+.hs-name{font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.hs-name.jb{color:var(--jb-lt,#7fa8ff)}
+.hs-name.ua{color:var(--ua-lt,#ff8fa0)}
+.hs-pts{font-size:30px;font-weight:700;line-height:1.1;color:#fff}
+.hs-mid{text-align:center;font-size:10px;color:#7e92ad;text-transform:uppercase;letter-spacing:.5px}
+.hs-needed{font-size:10px;color:#a9bdd6;margin-top:2px}
+.tabs{display:flex;background:var(--navy-dark)}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:#8da4c2;border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+
+/* ===== Layout ===== */
+.wrap{max-width:760px;margin:0 auto;padding:12px 12px 40px}
+.banner{background:#fff8e1;border:1px solid #f0d68a;color:#7a5d00;font-size:12px;padding:10px 12px;border-radius:6px;margin-bottom:12px;line-height:1.5}
+.banner.ok{background:var(--green-bg);border-color:#bfe3c6;color:var(--green)}
+.banner.bad{background:var(--ua-bg);border-color:#e8b6c0;color:var(--ua)}
+.banner b{font-weight:700}
+
+/* ===== Session pills ===== */
+.sess-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px}
+.sess-pill{flex-shrink:0;padding:7px 13px;border-radius:16px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.sess-pill.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.sess-pill .d{font-weight:400;opacity:.75;font-size:11px}
+
+/* ===== Cards / tables ===== */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.card-hd{background:#f4f6f9;border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.card-hd .t{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.sess-meta{font-size:12px;color:var(--muted);margin:6px 2px 10px}
+
+.match-row{display:flex;align-items:stretch;border-bottom:1px solid #edf0f4;cursor:pointer;background:var(--card)}
+.match-row:last-child{border-bottom:none}
+.match-row:active{background:#f4f6f9}
+.mr-num{width:34px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--faint);background:#f8fafc;border-right:1px solid #edf0f4}
+.mr-body{flex:1;padding:9px 10px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px}
+.mr-side{min-width:0}
+.mr-side.r{text-align:right}
+.mr-p{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mr-p.jb{color:var(--jb)}
+.mr-p.ua{color:var(--ua)}
+.mr-p2{font-size:13.5px;font-weight:700}
+.mr-status{text-align:center;min-width:74px}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:11px;letter-spacing:.3px;white-space:nowrap}
+.pill.jb{background:var(--jb-bg);color:var(--jb)}
+.pill.ua{background:var(--ua-bg);color:var(--ua)}
+.pill.half{background:#eceff3;color:var(--muted)}
+.pill.pend{background:transparent;color:var(--faint);border:1px dashed var(--border);font-weight:600}
+.pill.live{background:var(--green-bg);color:var(--green)}
+.mr-thru{font-size:10px;color:var(--faint);margin-top:2px}
+.mr-tee{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;white-space:nowrap}
+.mr-tee.none{color:var(--faint);font-weight:600}
+
+/* ===== Scorecard ===== */
+.sc-top{padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:10px}
+.back{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--navy);font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:8px}
+.sc-fmt{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.sc-fmt .tee{color:var(--navy)}
+.sc-vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-top:6px}
+.sc-team{font-size:14px;font-weight:700;line-height:1.35}
+.sc-team.jb{color:var(--jb)}
+.sc-team.ua{color:var(--ua);text-align:right}
+.sc-status{display:flex;align-items:center;justify-content:space-between;background:var(--navy);color:#fff;border-radius:6px;padding:9px 12px;margin-top:10px}
+.sc-status .lbl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#a9bdd6}
+.sc-status .val{font-size:15px;font-weight:700}
+.fmt-note{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+.holes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(min-width:560px){.holes{grid-template-columns:repeat(4,1fr)}}
+.hole{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.hole.won-jb{border-color:var(--jb);box-shadow:inset 0 0 0 1px var(--jb)}
+.hole.won-ua{border-color:var(--ua);box-shadow:inset 0 0 0 1px var(--ua)}
+.hole.won-half{border-color:#b8c2cf;box-shadow:inset 0 0 0 1px #b8c2cf}
+.hole-num{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--faint);text-transform:uppercase;margin-bottom:5px}
+.hole-in{display:flex;flex-direction:column;gap:5px}
+.hrow{display:flex;align-items:center;gap:5px}
+.hlbl{font-size:10px;font-weight:700;width:26px;text-align:left;overflow:hidden}
+.hlbl.jb{color:var(--jb)}
+.hlbl.ua{color:var(--ua)}
+.hinp{flex:1;height:38px;font-size:17px;font-weight:600;text-align:center;border:1px solid var(--border);border-radius:6px;background:#fafbfc;color:var(--text);width:100%}
+.hinp:focus{outline:none;border-color:var(--navy);background:#fff}
+.hwin{font-size:10px;font-weight:700;height:14px;margin-top:2px}
+.hwin.jb{color:var(--jb)}
+.hwin.ua{color:var(--ua)}
+.hwin.half{color:var(--faint)}
+
+/* ===== Scoreboard ===== */
+.total-card{background:var(--navy);border-radius:8px;color:#fff;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.tc-pts{font-size:36px;font-weight:700;line-height:1}
+.tc-name{font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.tc-mid{text-align:center;font-size:10px;color:#7e92ad;text-transform:uppercase;letter-spacing:.5px}
+.sb-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.sb-tbl td{padding:8px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle}
+.sb-tbl tr:last-child td{border-bottom:none}
+.sb-side{width:38%}
+.sb-side.r{text-align:right}
+.sb-p{font-weight:600;font-size:12.5px;line-height:1.4}
+.sb-p.jb{color:var(--jb)}
+.sb-p.ua{color:var(--ua)}
+.sb-mid{text-align:center;width:24%}
+.sess-pts{font-size:12px;font-weight:700;color:var(--muted)}
+
+/* ===== Admin ===== */
+.alogin{max-width:320px;margin:36px auto;text-align:center}
+.alogin input{width:100%;padding:11px;border:1px solid var(--border);border-radius:6px;font-size:15px;margin:10px 0;text-align:center}
+.btn{display:inline-block;padding:10px 18px;border-radius:6px;border:1px solid var(--navy);background:var(--navy);color:#fff;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.3px}
+.btn.ghost{background:transparent;color:var(--navy)}
+.btn.danger{background:transparent;border-color:#d8a0a9;color:var(--ua)}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.5;cursor:default}
+.atabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.atab{padding:7px 13px;border-radius:16px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+.atab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.roster-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:540px){.roster-grid{grid-template-columns:1fr}}
+.r-col-hd{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:8px 10px;border-radius:6px 6px 0 0;color:#fff}
+.r-col-hd.jb{background:var(--jb)}
+.r-col-hd.ua{background:var(--ua)}
+.r-col{background:var(--card);border:1px solid var(--border);border-radius:0 0 6px 6px;padding:8px}
+.r-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.r-row span{font-size:10px;color:var(--faint);width:16px;text-align:right;font-weight:700}
+.r-row input{flex:1;padding:7px 9px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:#fafbfc}
+.r-row input:focus{outline:none;border-color:var(--navy);background:#fff}
+.pair-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.pair-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.pair-num{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+.tee-row{display:flex;align-items:center;gap:6px}
+.tee-row label{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+.tee-row input{width:110px;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:12.5px;font-weight:600;background:#fafbfc;text-align:center}
+.tee-row input:focus{outline:none;border-color:var(--navy);background:#fff}
+.tee-row input::placeholder{color:var(--faint);font-weight:600;font-style:italic}
+.pair-sel{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pair-sel select{width:100%;padding:8px 6px;border:1px solid var(--border);border-radius:5px;font-size:12.5px;background:#fafbfc;font-weight:600}
+.pair-sel select.jb{color:var(--jb)}
+.pair-sel select.ua{color:var(--ua)}
+.pair-vs{grid-column:1/-1;text-align:center;font-size:10px;color:var(--faint);font-weight:700;letter-spacing:1px;padding:1px 0}
+.reset-row{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px;font-weight:600}
+.save-bar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding:14px 0 6px;display:flex;gap:8px;align-items:center}
+.savemsg{font-size:12px;color:var(--green);font-weight:600}
+.conn{position:fixed;bottom:10px;right:10px;font-size:10px;font-weight:700;letter-spacing:.4px;padding:4px 10px;border-radius:12px;z-index:50}
+.conn.on{background:var(--green-bg);color:var(--green)}
+.conn.off{background:#fdeaee;color:var(--ua)}
+.empty{padding:28px;text-align:center;color:var(--faint);font-size:13px}
+
+/* ===== Forms / setup ===== */
+.fgrid{display:grid;gap:10px}
+.fgrid label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;display:block}
+.fgrid input[type=text],.fgrid input[type=password],.fgrid input[type=number],.fgrid select,.fgrid textarea{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:#fafbfc;font-family:inherit}
+.fgrid input:focus,.fgrid select:focus,.fgrid textarea:focus{outline:none;border-color:var(--navy);background:#fff}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:480px){.frow3{grid-template-columns:1fr 1fr}.frow3>:last-child{grid-column:1/-1}}
+.color-row{display:flex;align-items:center;gap:8px}
+.color-row input[type=color]{width:44px;height:38px;padding:2px;border:1px solid var(--border);border-radius:6px;flex-shrink:0}
+.hint{font-size:11px;color:var(--faint);line-height:1.5}
+.sec{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
+.sec-t{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.slug-preview{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--navy);word-break:break-all}
+
+/* ===== Landing ===== */
+.land-hero{text-align:center;padding:26px 12px 18px}
+.land-hero h1{font-size:26px;font-weight:700;letter-spacing:.2px}
+.land-hero p{font-size:13.5px;color:var(--muted);margin-top:7px;line-height:1.55;max-width:440px;margin-left:auto;margin-right:auto}
+.join-row{display:flex;gap:8px}
+.join-row input{flex:1}
+.sess-edit{border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc}
+.sess-edit-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sess-edit-hd .n{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+.mini{padding:4px 8px;font-size:11px;border-radius:5px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;font-weight:700}
+.mini.x{color:var(--ua);border-color:#e8b6c0}
+.chk{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);padding-top:18px}
+.chk input{width:18px;height:18px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="conn" class="conn off">CONNECTING‚Ä¶</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ============================================================
+   STEP 1 ‚Äî PASTE YOUR FIREBASE CONFIG BELOW
+   One project hosts every event. You do this once, ever.
+   Firebase console -> Project settings -> Your apps -> Config
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCjvYADNJ6-OPogpZeaZtkYgzock7NLKic",
+  authDomain: "snap-golf-scoring-app-master.firebaseapp.com",
+  databaseURL: "https://snap-golf-scoring-app-master-default-rtdb.firebaseio.com",
+  projectId: "snap-golf-scoring-app-master",
+  storageBucket: "snap-golf-scoring-app-master.firebasestorage.app",
+  messagingSenderId: "827418269820",
+  appId: "1:827418269820:web:b1d1f63c33f5def52b11f9"
+};
+
+/* ============================================================
+   STEP 2 ‚Äî OWNER MASTER KEY
+   Unlocks the admin panel of ANY event. Give this to nobody.
+   The plaintext key is NOT in this file ‚Äî only its hash, which
+   cannot be reversed. To rotate it, generate a new hash and
+   replace the three values below.
+   ============================================================ */
+const OWNER_KEY = {
+  salt: "8f99bcc68ac5888fda648d60f917230c",
+  iter: 200000,
+  hash: "38379449ef5c5734033edc7103975aac661e68a4788ab336f101c00aa7d15b85"
+};
+
+const PBKDF2_ITER = 200000;
+
+/* ---------- Event id from ?event= (null = landing page) ---------- */
+/* live=true keeps a trailing dash so you can actually type one */
+function cleanSlug(s, live){
+  let v = String(s||'').trim().toLowerCase()
+    .replace(/[\s_]+/g,'-')
+    .replace(/[^a-z0-9-]/g,'')
+    .replace(/-+/g,'-')
+    .replace(/^-+/,'');
+  if (!live) v = v.replace(/-+$/,'');
+  return v.slice(0,40);
+}
+const EVENT_ID = cleanSlug(new URLSearchParams(location.search).get('event')) || null;
+
+/* ---------- Format presets ---------- */
+const PRESETS = {
+  ryder: {
+    label: 'Ryder Cup style ‚Äî 3 team sessions + singles',
+    sessions: [
+      {label:'Better Ball',    day:1, holes:9,  team:true,  tee:true,  note:'Four-ball: each player plays their own ball; the lower score of the two partners counts for the team on each hole.'},
+      {label:'Alternate Shot', day:1, holes:9,  team:true,  tee:false, note:'Foursomes: partners play one ball, alternating shots. Enter the single team score per hole.'},
+      {label:'Scramble',       day:1, holes:9,  team:true,  tee:false, note:'Both partners hit, pick the best ball, both play from there. Enter the single team score per hole.'},
+      {label:'Singles',        day:2, holes:18, team:false, tee:true,  note:'18-hole singles match play. Lower score wins the hole.'}
+    ]
+  },
+  singles: {
+    label: 'Singles only ‚Äî one 18-hole session',
+    sessions: [
+      {label:'Singles', day:1, holes:18, team:false, tee:true, note:'18-hole singles match play. Lower score wins the hole.'}
+    ]
+  },
+  oneday: {
+    label: 'One day ‚Äî team AM, singles PM',
+    sessions: [
+      {label:'Better Ball', day:1, holes:9,  team:true,  tee:true, note:'Four-ball: each player plays their own ball; the lower score of the two partners counts for the team on each hole.'},
+      {label:'Singles',     day:1, holes:9,  team:false, tee:true, note:'9-hole singles match play. Lower score wins the hole.'}
+    ]
+  },
+  blank: { label: 'Blank ‚Äî I will build my own', sessions: [] }
+};
+
+/* ---------- Crypto (PBKDF2-SHA256 via WebCrypto) ---------- */
+const cryptoOk = !!(window.crypto && window.crypto.subtle);
+function hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function randSalt(){ const a=new Uint8Array(16); crypto.getRandomValues(a); return hex(a); }
+async function pbkdf2(pw, saltHex, iter){
+  const salt = new Uint8Array((saltHex.match(/../g)||[]).map(h=>parseInt(h,16)));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, key, 256);
+  return hex(bits);
+}
+/* Master key is stored/typed as XXXX-XXXX-‚Ä¶; accept any spacing or case */
+function normMaster(s){
+  const raw = String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  return (raw.match(/.{1,4}/g)||[]).join('-');
+}
+async function makeAuth(password){
+  const salt = randSalt();
+  return { salt, iter: PBKDF2_ITER, hash: await pbkdf2(password, salt, PBKDF2_ITER) };
+}
+
+/* ---------- Per-event metadata ---------- */
+function defaultMeta(){
+  return {
+    eventName: 'Golf Cup',
+    teamA: { name:'Team A', color:'#0033a0', short:'' },
+    teamB: { name:'Team B', color:'#c41e3a', short:'' },
+    rosterSize: 16,
+    sessions: PRESETS.ryder.sessions.map((s,i)=>({id:'s'+(i+1), ...s})),
+    auth: null,
+    createdAt: Date.now()
+  };
+}
+function normMeta(v){
+  const d = defaultMeta();
+  const m = Object.assign({}, d, v || {});
+  m.eventName = String(m.eventName || d.eventName).slice(0,80);
+  ['teamA','teamB'].forEach(k=>{
+    const src = m[k] || {};
+    m[k] = {
+      name:  String(src.name || d[k].name).slice(0,40),
+      color: /^#[0-9a-fA-F]{6}$/.test(src.color) ? src.color : d[k].color,
+      /* blank means "derive it from the name" ‚Äî see deriveShort */
+      short: String(src.short || '').replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase()
+    };
+  });
+  let n = parseInt(m.rosterSize) || d.rosterSize;
+  n = Math.max(2, Math.min(40, n));
+  if (n % 2) n++;
+  m.rosterSize = n;
+  m.sessions = normSessions(m.sessions);
+  m.auth = (m.auth && m.auth.hash && m.auth.salt && m.auth.iter) ? m.auth : null;
+  return m;
+}
+function toArray(a){
+  if (!a) return [];
+  if (Array.isArray(a)) return a.filter(x=>x!==null && x!==undefined);
+  return Object.keys(a).sort((x,y)=>x-y).map(k=>a[k]).filter(x=>x!==null && x!==undefined);
+}
+function normSessions(raw){
+  return toArray(raw).map((s,i)=>({
+    id:    String(s.id || ('s'+(i+1))).slice(0,16),
+    label: String(s.label || ('Session '+(i+1))).slice(0,40),
+    day:   Math.max(1, Math.min(7,  parseInt(s.day)   || 1)),
+    holes: Math.max(1, Math.min(18, parseInt(s.holes) || 9)),
+    team:  !!s.team,
+    tee:   !!s.tee,
+    note:  String(s.note || '').slice(0,400)
+  }));
+}
+let meta = defaultMeta();
+let metaLoaded = false;
+let eventMissing = false;
+
+function SESSIONS(){ return meta.sessions; }
+function sessById(id){ return meta.sessions.find(s=>s.id===id) || null; }
+function matchCount(s){ return s.team ? Math.floor(meta.rosterSize/2) : meta.rosterSize; }
+/* Initials for multi-word names ("Team Ocean" -> TO), else first two letters */
+function deriveShort(name){
+  const words = String(name||'').trim().split(/\s+/).map(w=>w.replace(/[^A-Za-z0-9]/g,'')).filter(Boolean);
+  const s = words.length >= 2
+    ? words.slice(0,3).map(w=>w[0]).join('')
+    : (words[0] || '').slice(0,2);
+  return s.toUpperCase() || '?';
+}
+function sA(){ return meta.teamA.short || deriveShort(meta.teamA.name); }
+function sB(){ return meta.teamB.short || deriveShort(meta.teamB.name); }
+/* Team colors are picked for white cards; on the navy header they need lifting */
+function lighten(hexColor, amt){
+  const n = parseInt(String(hexColor).slice(1), 16);
+  if (isNaN(n)) return '#ffffff';
+  const c = [(n>>16)&255, (n>>8)&255, n&255].map(v => Math.round(v + (255-v)*amt));
+  return '#' + c.map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function applyTeamColors(){
+  const r = document.documentElement.style;
+  r.setProperty('--jb', meta.teamA.color);
+  r.setProperty('--ua', meta.teamB.color);
+  r.setProperty('--jb-lt', lighten(meta.teamA.color, .55));
+  r.setProperty('--ua-lt', lighten(meta.teamB.color, .55));
+}
+
+/* ---------- State ---------- */
+function defaultState(){
+  const n = meta.rosterSize;
+  const jb = Array.from({length:n},(_,i)=>`${meta.teamA.name} ${i+1}`);
+  const ua = Array.from({length:n},(_,i)=>`${meta.teamB.name} ${i+1}`);
+  const pairings = {};
+  SESSIONS().forEach(s=>{
+    pairings[s.id] = Array.from({length:matchCount(s)},(_,i)=> s.team
+      ? mkMatch(s, {jb1:jb[i*2], jb2:jb[i*2+1], ua1:ua[i*2], ua2:ua[i*2+1]})
+      : mkMatch(s, {jb1:jb[i], ua1:ua[i]}));
+  });
+  return {jb, ua, pairings};
+}
+/* Build a match with only the keys this session actually uses.
+   Firebase set() throws on undefined values, so absent beats undefined. */
+function mkMatch(s, src){
+  const m = src || {};
+  const out = {
+    jb1: m.jb1 || '',
+    ua1: m.ua1 || '',
+    scores: { jb:(m.scores&&m.scores.jb)||{}, ua:(m.scores&&m.scores.ua)||{} }
+  };
+  if (s.team){ out.jb2 = m.jb2 || ''; out.ua2 = m.ua2 || ''; }
+  if (s.tee){ out.tee = m.tee || ''; }
+  return out;
+}
+
+/* Firebase drops empty objects and sparse arrays ‚Äî re-hydrate the shape */
+function normalize(v){
+  const st = v || {};
+  const n = meta.rosterSize;
+  st.jb = roster(st.jb, n, i=>`${meta.teamA.name} ${i+1}`);
+  st.ua = roster(st.ua, n, i=>`${meta.teamB.name} ${i+1}`);
+  const old = st.pairings || {};
+  st.pairings = {};
+  SESSIONS().forEach(s=>{
+    const arr = toArray(old[s.id]);
+    st.pairings[s.id] = Array.from({length:matchCount(s)},(_,i)=>{
+      /* A slot that never existed (new session, or the roster just grew)
+         starts seeded from the roster instead of showing a blank row. */
+      const m = arr[i] || (s.team
+        ? {jb1:st.jb[i*2], jb2:st.jb[i*2+1], ua1:st.ua[i*2], ua2:st.ua[i*2+1]}
+        : {jb1:st.jb[i], ua1:st.ua[i]});
+      return mkMatch(s, m);
+    });
+  });
+  return st;
+}
+function roster(a, n, fill){
+  const arr = toArray(a);
+  return Array.from({length:n},(_,i)=> (arr[i]!==undefined && arr[i]!==null && arr[i]!=='') ? String(arr[i]) : fill(i));
+}
+
+/* ---------- Firebase / local fallback ---------- */
+let state = null;
+let db = null, stateRef = null, metaRef = null, online = false, fbReady = false;
+let stateSeeded = false;   /* have we ever held real state for this event? */
+const localMode = firebaseConfig.apiKey.indexOf('PASTE') === 0;
+const LS_KEY = 'golfcup_' + (EVENT_ID || '_none');
+
+function setConn(on, txt){
+  const el = document.getElementById('conn');
+  el.className = 'conn ' + (on ? 'on' : 'off');
+  el.textContent = txt;
+}
+
+if (!localMode){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    fbReady = true;
+    db.ref('.info/connected').on('value', s=>{
+      online = !!s.val();
+      setConn(online, online ? 'LIVE SYNC' : 'OFFLINE ‚Äî RETRYING');
+    });
+  }catch(e){ setConn(false,'SYNC ERROR'); }
+} else {
+  setConn(false,'LOCAL ONLY ‚Äî NO SYNC');
+}
+
+function attach(){
+  if (!EVENT_ID) { metaLoaded = true; render(); return; }
+  if (localMode){
+    try{
+      const m = localStorage.getItem(LS_KEY+'_meta');
+      if (m){ meta = normMeta(JSON.parse(m)); } else { eventMissing = true; }
+      const s = localStorage.getItem(LS_KEY);
+      state = normalize(s ? JSON.parse(s) : defaultState());
+    }catch(e){ state = defaultState(); }
+    metaLoaded = true; applyTeamColors(); render(); return;
+  }
+  if (!fbReady){ metaLoaded = true; render(); return; }
+
+  metaRef  = db.ref('events/'+EVENT_ID+'/meta');
+  stateRef = db.ref('events/'+EVENT_ID+'/state');
+
+  metaRef.on('value', snap=>{
+    const v = snap.val();
+    if (v === null){
+      /* Unknown event ‚Äî never auto-create, or every typo becomes an event */
+      eventMissing = true; metaLoaded = true; render(); return;
+    }
+    eventMissing = false;
+    meta = normMeta(v);
+    applyTeamColors();
+    if (!metaLoaded){
+      metaLoaded = true;
+      stateRef.on('value', s2=>{
+        const sv = s2.val();
+        if (sv === null){
+          /* Seed only if this event genuinely has no state yet. A null that
+             arrives AFTER we've held real data is a phantom ‚Äî a rejected
+             delete rolling back through the local cache, or someone clearing
+             the node. Writing defaults here would let anyone reset a live
+             tournament by firing a delete the rules then bounce. */
+          if (!stateSeeded){
+            stateSeeded = true;
+            state = defaultState();
+            stateRef.set(state);
+            renderPreservingFocus();
+          }
+          return;
+        }
+        stateSeeded = true;
+        const next = normalize(sv);
+        if (state && JSON.stringify(next) === JSON.stringify(state)) return;
+        state = next;
+        renderPreservingFocus();
+      });
+    } else if (state){
+      /* meta changed (roster size, sessions) ‚Äî reshape what we hold */
+      state = normalize(state);
+    }
+    renderPreservingFocus();
+  });
+}
+
+function persist(path, value){
+  if (!localMode && stateRef) db.ref('events/'+EVENT_ID+'/state/'+path).set(value);
+  else { try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+}
+function persistState(){
+  if (!localMode && stateRef) stateRef.set(state);
+  else { try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+}
+function persistMeta(path, value){
+  if (!localMode && metaRef) db.ref('events/'+EVENT_ID+'/meta/'+path).set(value);
+  else { try{ localStorage.setItem(LS_KEY+'_meta', JSON.stringify(meta)); }catch(e){} }
+}
+/* Roster size or session list changed ‚Äî reshape and rewrite the whole state */
+function reshape(){
+  state = normalize(state || defaultState());
+  persistState();
+  render();
+}
+
+/* ---------- Match play engine ---------- */
+function matchResult(m, holes){
+  let jbUp = 0, played = 0;
+  for (let i=0; i<holes; i++){
+    const j = parseInt(m.scores.jb['h'+i]) || 0;
+    const u = parseInt(m.scores.ua['h'+i]) || 0;
+    if (!j || !u) break;
+    played++;
+    if (j < u) jbUp++; else if (u < j) jbUp--;
+    const remaining = holes - played;
+    if (remaining > 0 && Math.abs(jbUp) > remaining){
+      const w = jbUp > 0 ? 'jb' : 'ua';
+      return {done:true, winner:w, pts:{jb:w==='jb'?1:0, ua:w==='ua'?1:0},
+              label: Math.abs(jbUp)+'&'+remaining, thru:played};
+    }
+  }
+  if (played === holes && holes > 0){
+    if (jbUp === 0) return {done:true, winner:'half', pts:{jb:.5,ua:.5}, label:'HALVED', thru:played};
+    const w = jbUp > 0 ? 'jb' : 'ua';
+    return {done:true, winner:w, pts:{jb:w==='jb'?1:0, ua:w==='ua'?1:0},
+            label: Math.abs(jbUp)+' UP', thru:played};
+  }
+  if (played === 0) return {done:false, winner:null, pts:{jb:0,ua:0}, label:'', thru:0};
+  const lbl = jbUp === 0 ? 'AS' : (jbUp>0?sA()+' ':sB()+' ') + Math.abs(jbUp) + ' UP';
+  return {done:false, winner:null, live:true, pts:{jb:0,ua:0}, label:lbl, thru:played};
+}
+function totals(){
+  let jb=0, ua=0, total=0;
+  SESSIONS().forEach(s=>{
+    (state.pairings[s.id]||[]).forEach(m=>{
+      const r = matchResult(m, s.holes);
+      jb += r.pts.jb; ua += r.pts.ua; total++;
+    });
+  });
+  return {jb, ua, total, toWin: total/2 + 0.5};
+}
+function fmtPts(p){ return p % 1 === 0 ? String(p) : p.toFixed(1).replace('.5','¬Ω'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- View state ---------- */
+let view = 'matches';
+let selSess = null;
+let scoring = null;
+let adminOk = false, isOwner = false;
+let adminTab = 'rosters';
+let landTab = 'join';
+let landPreset = 'ryder';
+let landErr = '';
+let busy = false;
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  const app = document.getElementById('app');
+  if (!metaLoaded){ app.innerHTML = `<div class="wrap"><div class="empty">Loading‚Ä¶</div></div>`; return; }
+  if (!EVENT_ID){ app.innerHTML = renderLanding(); return; }
+  if (eventMissing){ app.innerHTML = renderMissing(); return; }
+  if (!state){ app.innerHTML = `<div class="wrap"><div class="empty">Loading‚Ä¶</div></div>`; return; }
+
+  if (!selSess || !sessById(selSess)) selSess = SESSIONS().length ? SESSIONS()[0].id : null;
+
+  const t = totals();
+  let html = `
+  <div class="hdr">
+    <div class="hdr-top" style="justify-content:center;padding-bottom:0">
+      <div style="text-align:center">
+        <div class="hdr-title" style="font-size:26px;margin-top:8px;margin-bottom:0">${esc(meta.eventName)}</div>
+      </div>
+    </div>
+    <div class="hdr-sub">event: ${esc(EVENT_ID)}</div>
+    <div class="hdr-score">
+      <div class="hs-team"><div class="hs-name jb">${esc(meta.teamA.name)}</div><div class="hs-pts">${fmtPts(t.jb)}</div></div>
+      <div class="hs-mid">points<div class="hs-needed">${fmtPts(t.toWin)} to win ¬∑ ${t.total} matches</div></div>
+      <div class="hs-team r"><div class="hs-name ua">${esc(meta.teamB.name)}</div><div class="hs-pts">${fmtPts(t.ua)}</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab ${view==='matches'?'on':''}" onclick="go('matches')">Matches</button>
+      <button class="tab ${view==='scoreboard'?'on':''}" onclick="go('scoreboard')">Leaderboard</button>
+      <button class="tab ${view==='admin'?'on':''}" onclick="go('admin')">Admin</button>
+    </div>
+  </div>
+  <div class="wrap">`;
+
+  if (localMode) html += `<div class="banner"><b>Local mode:</b> Firebase config not set ‚Äî scores save on this device only. Paste your Firebase config near the top of this file to enable live sync.</div>`;
+  if (!meta.auth && !localMode) html += `<div class="banner"><b>No admin password set.</b> Open the Admin tab and set one ‚Äî right now anyone can open the captain panel.</div>`;
+
+  if (!SESSIONS().length) html += `<div class="banner">This event has no sessions yet. Open <b>Admin ‚Üí Event Setup</b> to add them.</div>`;
+
+  if (scoring) html += renderScorecard();
+  else if (view === 'matches') html += renderMatches();
+  else if (view === 'scoreboard') html += renderBoard();
+  else html += renderAdmin();
+
+  html += `</div>`;
+  app.innerHTML = html;
+}
+
+/* ---------- Landing ---------- */
+function renderLanding(){
+  return `
+  <div class="hdr">
+    <div class="hdr-top" style="justify-content:center;padding-bottom:10px">
+      <div class="hdr-title" style="font-size:22px;margin-top:6px">Tournament Scoring</div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="land-hero">
+      <h1>Live match play scoring</h1>
+      <p>Enter scores from the course, everyone sees them instantly. Set up your event in about a minute ‚Äî no app to install.</p>
+    </div>
+    ${localMode?`<div class="banner"><b>Local mode:</b> Firebase config not set, so events live in this browser only and nothing syncs. Fine for a test drive ‚Äî paste your config near the top of this file to go live.</div>`:''}
+    ${!cryptoOk?`<div class="banner bad"><b>Insecure context:</b> password hashing needs HTTPS. Open this page over https:// (GitHub Pages is fine) ‚Äî on file:// the admin password can't be set.</div>`:''}
+    ${landErr?`<div class="banner bad">${esc(landErr)}</div>`:''}
+
+    <div class="atabs">
+      <button class="atab ${landTab==='join'?'on':''}" onclick="setLandTab('join')">Join an event</button>
+      <button class="atab ${landTab==='create'?'on':''}" onclick="setLandTab('create')">Create an event</button>
+    </div>
+
+    ${landTab==='join' ? `
+    <div class="sec">
+      <div class="sec-t">Event code</div>
+      <div class="fgrid">
+        <div class="join-row">
+          <input type="text" id="j_code" placeholder="e.g. pinehurst-cup-2026" onkeydown="if(event.key==='Enter')joinEvent()">
+          <button class="btn" onclick="joinEvent()">Go</button>
+        </div>
+        <div class="hint">Your captain will have sent you a link. The code is the part after <code>?event=</code>.</div>
+      </div>
+    </div>` : `
+    <div class="sec">
+      <div class="sec-t">The basics</div>
+      <div class="fgrid">
+        <div>
+          <label for="c_name">Event name</label>
+          <input type="text" id="c_name" placeholder="Pinehurst Cup 2026" oninput="syncSlug()">
+        </div>
+        <div>
+          <label for="c_slug">Event code</label>
+          <input type="text" id="c_slug" placeholder="pinehurst-cup-2026" oninput="syncSlug(true)">
+          <div class="hint" style="margin-top:5px">Share link: <span class="slug-preview" id="c_link">${esc(location.origin+location.pathname)}?event=‚Ä¶</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Teams</div>
+      <div class="fgrid">
+        <div class="frow">
+          <div>
+            <label for="c_an">Team A name</label>
+            <input type="text" id="c_an" value="Team A">
+          </div>
+          <div>
+            <label for="c_bn">Team B name</label>
+            <input type="text" id="c_bn" value="Team B">
+          </div>
+        </div>
+        <div class="frow">
+          <div class="color-row"><input type="color" id="c_ac" value="#0033a0"><label style="margin:0">Team A color</label></div>
+          <div class="color-row"><input type="color" id="c_bc" value="#c41e3a"><label style="margin:0">Team B color</label></div>
+        </div>
+        <div>
+          <label for="c_size">Players per team</label>
+          <input type="number" id="c_size" value="16" min="2" max="40" step="2">
+          <div class="hint" style="margin-top:5px">Even numbers only. Team sessions run ${'{'}size √∑ 2${'}'} matches, singles run one per player.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Format</div>
+      <div class="fgrid">
+        <div>
+          <label for="c_preset">Starting format</label>
+          <select id="c_preset">
+            ${Object.keys(PRESETS).map(k=>`<option value="${k}" ${k===landPreset?'selected':''}>${esc(PRESETS[k].label)}</option>`).join('')}
+          </select>
+          <div class="hint" style="margin-top:5px">You can add, remove and rename sessions any time from Admin ‚Üí Event Setup.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Captain password</div>
+      <div class="fgrid">
+        <div>
+          <label for="c_pwd">Password</label>
+          <input type="password" id="c_pwd" placeholder="Something your captains will remember">
+          <div class="hint" style="margin-top:5px">Needed to edit rosters, pairings and scores setup. Stored hashed ‚Äî it cannot be looked up, only reset. Write it down.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin:16px 0 30px">
+      <button class="btn" id="c_go" onclick="createEvent()" ${!cryptoOk?'disabled':''}>Create event</button>
+    </div>`}
+  </div>`;
+}
+
+function renderMissing(){
+  return `
+  <div class="hdr">
+    <div class="hdr-top" style="justify-content:center;padding-bottom:10px">
+      <div class="hdr-title" style="font-size:22px;margin-top:6px">Tournament Scoring</div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="land-hero">
+      <h1>No event here yet</h1>
+      <p>Nothing is set up at <b>${esc(EVENT_ID)}</b>. Check the link for a typo, or create this event now.</p>
+    </div>
+    <div style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <a class="btn" href="${esc(location.pathname)}">Go to the start page</a>
+      <a class="btn ghost" href="${esc(location.pathname)}?new=${esc(EVENT_ID)}">Create ‚Äú${esc(EVENT_ID)}‚Äù</a>
+    </div>
+  </div>`;
+}
+
+/* ---------- Matches ---------- */
+function sessPills(activeId, fn){
+  return `<div class="sess-row">` + SESSIONS().map(s=>
+    `<button class="sess-pill ${activeId===s.id?'on':''}" onclick="${fn}('${esc(s.id)}')">
+       <span class="d">D${s.day}</span> ${esc(s.label)}</button>`).join('') + `</div>`;
+}
+function statusPill(r){
+  if (r.done) return `<span class="pill ${r.winner==='half'?'half':r.winner}">${r.winner==='half'?'HALVED':esc((r.winner==='jb'?sA():sB())+' ')+r.label}</span>`;
+  if (r.live) return `<span class="pill live">${esc(r.label)}</span><div class="mr-thru">thru ${r.thru}</div>`;
+  return null;
+}
+function renderMatches(){
+  const s = sessById(selSess);
+  if (!s) return `<div class="empty">No sessions yet.</div>`;
+  const ms = state.pairings[s.id] || [];
+  let html = sessPills(selSess,'pickSess');
+  html += `<div class="sess-meta">${esc(s.label)} ¬∑ ${s.holes} holes ¬∑ ${s.team?'2-man teams':'singles'} ¬∑ tap your match to enter scores</div>`;
+  html += `<div class="card">`;
+  ms.forEach((m,i)=>{
+    const r = matchResult(m, s.holes);
+    const pill = statusPill(r) || `<span class="pill pend">TAP TO SCORE</span>`;
+    const tee = s.tee ? `<div class="mr-tee ${m.tee?'':'none'}">${m.tee ? esc(m.tee) : '‚Äî : ‚Äî'}</div>` : '';
+    html += `
+    <div class="match-row" onclick="openScore('${esc(s.id)}',${i})">
+      <div class="mr-num">${i+1}</div>
+      <div class="mr-body">
+        <div class="mr-side">
+          <div class="mr-p jb">${esc(m.jb1)}</div>
+          ${s.team?`<div class="mr-p jb mr-p2">${esc(m.jb2)}</div>`:''}
+        </div>
+        <div class="mr-status">${tee}${pill}</div>
+        <div class="mr-side r">
+          <div class="mr-p ua">${esc(m.ua1)}</div>
+          ${s.team?`<div class="mr-p ua mr-p2">${esc(m.ua2)}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+  if (!ms.length) html += `<div class="empty">No matches in this session.</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function renderScorecard(){
+  const s = sessById(scoring.sess);
+  if (!s) { scoring = null; return renderMatches(); }
+  const m = (state.pairings[s.id]||[])[scoring.idx];
+  if (!m) { scoring = null; return renderMatches(); }
+  const r = matchResult(m, s.holes);
+  const status = r.done
+    ? (r.winner==='half' ? 'HALVED' : esc((r.winner==='jb'?meta.teamA.name:meta.teamB.name).toUpperCase()+' WIN ')+r.label)
+    : (r.live ? esc(r.label)+' ¬∑ thru '+r.thru : 'NOT STARTED');
+  let html = `
+  <div class="sc-top">
+    <button class="back" onclick="closeScore()">&#8592; All matches</button>
+    <div class="sc-fmt">Day ${s.day} ¬∑ ${esc(s.label)} ¬∑ Match ${scoring.idx+1}${s.tee && m.tee ? ` ¬∑ <span class="tee">Tee ${esc(m.tee)}</span>` : ''}</div>
+    <div class="sc-vs">
+      <div class="sc-team jb">${esc(m.jb1)}${s.team?'<br>'+esc(m.jb2):''}</div>
+      <div style="font-size:11px;color:var(--faint);font-weight:700">VS</div>
+      <div class="sc-team ua">${esc(m.ua1)}${s.team?'<br>'+esc(m.ua2):''}</div>
+    </div>
+    <div class="sc-status"><span class="lbl">Match status</span><span class="val">${status}</span></div>
+    ${s.note?`<div class="fmt-note">${esc(s.note)} Scores sync live ‚Äî both sides see updates instantly.</div>`:''}
+  </div>
+  <div class="holes">`;
+  for (let i=0;i<s.holes;i++){
+    const j = m.scores.jb['h'+i] || '';
+    const u = m.scores.ua['h'+i] || '';
+    let won = '', wlbl = '<div class="hwin"></div>';
+    if (j && u){
+      const jn = parseInt(j), un = parseInt(u);
+      if (jn < un){ won='won-jb'; wlbl=`<div class="hwin jb">${esc(sA())} WINS</div>`; }
+      else if (un < jn){ won='won-ua'; wlbl=`<div class="hwin ua">${esc(sB())} WINS</div>`; }
+      else { won='won-half'; wlbl='<div class="hwin half">HALVED</div>'; }
+    }
+    html += `
+    <div class="hole ${won}">
+      <div class="hole-num">Hole ${i+1}</div>
+      <div class="hole-in">
+        <div class="hrow"><span class="hlbl jb">${esc(sA())}</span>
+          <input class="hinp" id="in_${esc(s.id)}_${scoring.idx}_jb_${i}" type="number" inputmode="numeric" min="1" max="15" value="${j}"
+            oninput="setScore('${esc(s.id)}',${scoring.idx},'jb',${i},this.value)"></div>
+        <div class="hrow"><span class="hlbl ua">${esc(sB())}</span>
+          <input class="hinp" id="in_${esc(s.id)}_${scoring.idx}_ua_${i}" type="number" inputmode="numeric" min="1" max="15" value="${u}"
+            oninput="setScore('${esc(s.id)}',${scoring.idx},'ua',${i},this.value)"></div>
+      </div>${wlbl}
+    </div>`;
+  }
+  html += `</div>
+  <div style="margin-top:14px"><button class="btn" onclick="closeScore()">Done ‚Äî back to matches</button></div>`;
+  return html;
+}
+
+function renderBoard(){
+  const t = totals();
+  let html = `
+  <div class="total-card">
+    <div><div class="tc-name" style="color:var(--jb-lt)">${esc(meta.teamA.name)}</div><div class="tc-pts">${fmtPts(t.jb)}</div></div>
+    <div class="tc-mid">first to ${fmtPts(t.toWin)}<br>wins the cup</div>
+    <div style="text-align:right"><div class="tc-name" style="color:var(--ua-lt)">${esc(meta.teamB.name)}</div><div class="tc-pts">${fmtPts(t.ua)}</div></div>
+  </div>`;
+  SESSIONS().forEach(s=>{
+    const ms = state.pairings[s.id] || [];
+    let sj=0, su=0;
+    ms.forEach(m=>{ const r=matchResult(m,s.holes); sj+=r.pts.jb; su+=r.pts.ua; });
+    html += `<div class="card">
+      <div class="card-hd"><span class="t">Day ${s.day} ‚Äî ${esc(s.label)} (${s.holes}H)</span>
+      <span class="sess-pts">${fmtPts(sj)} ‚Äì ${fmtPts(su)}</span></div>
+      <table class="sb-tbl">`;
+    ms.forEach(m=>{
+      const r = matchResult(m, s.holes);
+      const pill = statusPill(r) || `<span class="pill pend">‚Äî</span>`;
+      const tee = s.tee && m.tee ? `<div class="mr-tee">${esc(m.tee)}</div>` : '';
+      html += `<tr>
+        <td class="sb-side"><div class="sb-p jb">${esc(m.jb1)}${s.team?'<br>'+esc(m.jb2):''}</div></td>
+        <td class="sb-mid">${tee}${pill}</td>
+        <td class="sb-side r"><div class="sb-p ua">${esc(m.ua1)}${s.team?'<br>'+esc(m.ua2):''}</div></td>
+      </tr>`;
+    });
+    html += `</table></div>`;
+  });
+  return html;
+}
+
+/* ---------- Admin ---------- */
+function renderAdmin(){
+  if (!adminOk){
+    return `<div class="alogin">
+      <div style="font-weight:700;font-size:15px">Captain access</div>
+      <div style="font-size:11px;color:var(--faint);margin-top:4px">Event: ${esc(EVENT_ID)}</div>
+      ${!meta.auth?`<div class="banner" style="text-align:left;margin-top:12px">No password has been set for this event yet. Enter one now and it becomes the captain password.</div>`:''}
+      ${!cryptoOk?`<div class="banner bad" style="text-align:left;margin-top:12px">Password check needs HTTPS. Open this page over https://.</div>`:''}
+      <input id="pwd" type="password" placeholder="${meta.auth?'Password':'Choose a password'}" onkeydown="if(event.key==='Enter')tryPwd()" ${cryptoOk?'':'disabled'}>
+      <button class="btn" onclick="tryPwd()" style="width:100%" ${cryptoOk?'':'disabled'}>${meta.auth?'Unlock':'Set password'}</button>
+      <div class="hint" style="margin-top:10px">Forgot it? The event owner can clear it from the Firebase console ‚Äî then the next unlock sets a new one.</div>
+    </div>`;
+  }
+  let html = '';
+  if (isOwner) html += `<div class="banner ok"><b>Owner access.</b> You unlocked this with the master key, not the event password.</div>`;
+  html += `<div class="atabs">
+    <button class="atab ${adminTab==='setup'?'on':''}" onclick="setAtab('setup')">Event Setup</button>
+    <button class="atab ${adminTab==='rosters'?'on':''}" onclick="setAtab('rosters')">Rosters</button>
+    <button class="atab ${adminTab==='pairings'?'on':''}" onclick="setAtab('pairings')">Pairings</button>
+    <button class="atab ${adminTab==='reset'?'on':''}" onclick="setAtab('reset')">Reset</button>
+  </div>`;
+
+  if (adminTab==='setup')    html += renderSetup();
+  if (adminTab==='rosters')  html += renderRosters();
+  if (adminTab==='pairings') html += renderPairings();
+  if (adminTab==='reset')    html += renderReset();
+  return html;
+}
+
+function renderSetup(){
+  let html = `
+  <div class="sec">
+    <div class="sec-t">Event</div>
+    <div class="fgrid">
+      <div>
+        <label for="s_name">Event name</label>
+        <input type="text" id="s_name" value="${esc(meta.eventName)}" onchange="setMeta('eventName',this.value)">
+      </div>
+      <div class="hint">Share link: <span class="slug-preview">${esc(location.origin+location.pathname)}?event=${esc(EVENT_ID)}</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">Teams</div>
+    <div class="fgrid">
+      <div class="frow">
+        <div><label for="s_an">Team A name</label>
+          <input type="text" id="s_an" value="${esc(meta.teamA.name)}" onchange="setMeta('teamA.name',this.value)"></div>
+        <div><label for="s_bn">Team B name</label>
+          <input type="text" id="s_bn" value="${esc(meta.teamB.name)}" onchange="setMeta('teamB.name',this.value)"></div>
+      </div>
+      <div class="frow">
+        <div><label for="s_as">Team A short code</label>
+          <input type="text" id="s_as" maxlength="3" value="${esc(meta.teamA.short)}" placeholder="${esc(deriveShort(meta.teamA.name))}" onchange="setMeta('teamA.short',this.value)"></div>
+        <div><label for="s_bs">Team B short code</label>
+          <input type="text" id="s_bs" maxlength="3" value="${esc(meta.teamB.short)}" placeholder="${esc(deriveShort(meta.teamB.name))}" onchange="setMeta('teamB.short',this.value)"></div>
+      </div>
+      <div class="hint">Short codes label each team on scorecards. Leave blank to follow the team name automatically.</div>
+      <div class="frow">
+        <div class="color-row"><input type="color" value="${esc(meta.teamA.color)}" onchange="setMeta('teamA.color',this.value)"><label style="margin:0">Team A color</label></div>
+        <div class="color-row"><input type="color" value="${esc(meta.teamB.color)}" onchange="setMeta('teamB.color',this.value)"><label style="margin:0">Team B color</label></div>
+      </div>
+      <div>
+        <label for="s_size">Players per team</label>
+        <input type="number" id="s_size" value="${meta.rosterSize}" min="2" max="40" step="2" onchange="setRosterSize(this.value)">
+        <div class="hint" style="margin-top:5px">Shrinking this drops the players and matches past the new limit, scores included.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">Sessions ‚Äî ${SESSIONS().length} ¬∑ ${totalMatches()} matches</div>`;
+  SESSIONS().forEach((s,i)=>{
+    html += `<div class="sess-edit">
+      <div class="sess-edit-hd">
+        <span class="n">Session ${i+1} ¬∑ ${matchCount(s)} matches</span>
+        <span style="display:flex;gap:5px">
+          <button class="mini" onclick="moveSess(${i},-1)" ${i===0?'disabled':''}>‚Üë</button>
+          <button class="mini" onclick="moveSess(${i},1)" ${i===SESSIONS().length-1?'disabled':''}>‚Üì</button>
+          <button class="mini x" onclick="removeSess(${i})">Remove</button>
+        </span>
+      </div>
+      <div class="fgrid">
+        <div><label>Name</label>
+          <input type="text" value="${esc(s.label)}" onchange="setSess(${i},'label',this.value)"></div>
+        <div class="frow3">
+          <div><label>Day</label>
+            <input type="number" min="1" max="7" value="${s.day}" onchange="setSess(${i},'day',this.value)"></div>
+          <div><label>Holes</label>
+            <input type="number" min="1" max="18" value="${s.holes}" onchange="setSess(${i},'holes',this.value)"></div>
+          <div><label>Format</label>
+            <select onchange="setSess(${i},'team',this.value)">
+              <option value="1" ${s.team?'selected':''}>2v2 teams</option>
+              <option value="0" ${!s.team?'selected':''}>Singles</option>
+            </select></div>
+        </div>
+        <label class="chk" style="padding-top:0">
+          <input type="checkbox" ${s.tee?'checked':''} onchange="setSess(${i},'tee',this.checked?1:0)"> Show tee times
+        </label>
+        <div><label>Format note (shown on the scorecard)</label>
+          <textarea rows="2" onchange="setSess(${i},'note',this.value)">${esc(s.note)}</textarea></div>
+      </div>
+    </div>`;
+  });
+  html += `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn ghost sm" onclick="addSess(true)">+ Add team session</button>
+      <button class="btn ghost sm" onclick="addSess(false)">+ Add singles session</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">Captain password</div>
+    <div class="fgrid">
+      <div>
+        <label for="s_pwd">New password</label>
+        <input type="password" id="s_pwd" placeholder="Leave blank to keep the current one">
+      </div>
+      <div><button class="btn sm" onclick="changePwd()">Update password</button> <span id="pwdmsg" class="savemsg"></span></div>
+      <div class="hint">Stored as a PBKDF2 hash ‚Äî nobody can read it back out, including you. If it's lost, the owner clears <code>events/${esc(EVENT_ID)}/meta/auth</code> in the Firebase console and the next unlock sets a fresh one.</div>
+    </div>
+  </div>`;
+  return html;
+}
+
+function renderRosters(){
+  let html = `<div class="roster-grid">`;
+  [['jb', meta.teamA.name],['ua', meta.teamB.name]].forEach(([team,nm])=>{
+    html += `<div><div class="r-col-hd ${team}">${esc(nm)} (${meta.rosterSize})</div><div class="r-col">`;
+    for (let i=0;i<meta.rosterSize;i++){
+      html += `<div class="r-row"><span>${i+1}</span>
+        <input id="ro_${team}_${i}" value="${esc(state[team][i])}"
+          onchange="setRoster('${team}',${i},this.value)"></div>`;
+    }
+    html += `</div></div>`;
+  });
+  html += `</div>
+  <div class="save-bar"><span class="savemsg">Names save automatically ‚Äî they update everywhere, including existing pairings.</span></div>`;
+  return html;
+}
+
+function renderPairings(){
+  const s = sessById(selSess);
+  if (!s) return `<div class="empty">Add a session in Event Setup first.</div>`;
+  let html = sessPills(selSess,'pickSess');
+  html += `<div class="sess-meta">${esc(s.label)}: ${matchCount(s)} matches, ${s.team?'2v2':'1v1'} ‚Äî
+    <button class="btn ghost sm" onclick="autoPair('${esc(s.id)}')">Auto-pair in roster order</button>
+    ${s.tee?`<button class="btn ghost sm" onclick="fillTees('${esc(s.id)}')">Fill tee times</button>`:''}</div>`;
+  (state.pairings[s.id]||[]).forEach((m,i)=>{
+    const opts = (team, cur)=> `<option value=""></option>` + state[team].map(p=>
+      `<option ${p===cur?'selected':''}>${esc(p)}</option>`).join('');
+    html += `<div class="pair-card">
+      <div class="pair-hd">
+        <div class="pair-num">Match ${i+1}</div>
+        ${s.tee?`<div class="tee-row"><label for="tee_${esc(s.id)}_${i}">Tee</label>
+          <input id="tee_${esc(s.id)}_${i}" type="text" value="${esc(m.tee)}" placeholder="add time"
+            oninput="setTee('${esc(s.id)}',${i},this.value)"></div>`:''}
+      </div>
+      <div class="pair-sel">
+        <select class="jb" onchange="setPair('${esc(s.id)}',${i},'jb1',this.value)">${opts('jb',m.jb1)}</select>
+        ${s.team?`<select class="jb" onchange="setPair('${esc(s.id)}',${i},'jb2',this.value)">${opts('jb',m.jb2)}</select>`:''}
+        ${!s.team?`<select class="ua" onchange="setPair('${esc(s.id)}',${i},'ua1',this.value)">${opts('ua',m.ua1)}</select>`:''}
+        ${s.team?`<div class="pair-vs">VS</div>
+        <select class="ua" onchange="setPair('${esc(s.id)}',${i},'ua1',this.value)">${opts('ua',m.ua1)}</select>
+        <select class="ua" onchange="setPair('${esc(s.id)}',${i},'ua2',this.value)">${opts('ua',m.ua2)}</select>`:''}
+      </div></div>`;
+  });
+  return html;
+}
+
+function renderReset(){
+  let html = `<div class="sess-meta">Clearing scores keeps rosters and pairings intact.</div>`;
+  SESSIONS().forEach(s=>{
+    html += `<div class="reset-row"><span>Day ${s.day} ¬∑ ${esc(s.label)}</span>
+      <button class="btn danger sm" onclick="clearSession('${esc(s.id)}')">Clear scores</button></div>`;
+  });
+  html += `<div style="margin-top:16px">
+    <button class="btn danger" onclick="clearAll()">Clear ALL scores (whole event)</button></div>
+  <div class="hint" style="margin-top:14px">Deleting the event itself is deliberately not possible from here ‚Äî ask the owner to remove <code>events/${esc(EVENT_ID)}</code> in the Firebase console.</div>`;
+  return html;
+}
+
+function totalMatches(){ return SESSIONS().reduce((n,s)=>n+matchCount(s),0); }
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function go(v){ view=v; scoring=null; render(); }
+function pickSess(id){ selSess=id; render(); }
+function setAtab(t){ adminTab=t; render(); }
+function setLandTab(t){ landTab=t; landErr=''; render(); }
+function openScore(sess, idx){ scoring={sess, idx}; render(); window.scrollTo(0,0); }
+function closeScore(){ scoring=null; render(); }
+
+/* ---------- Landing actions ---------- */
+function joinEvent(){
+  const code = cleanSlug(document.getElementById('j_code').value);
+  if (!code){ landErr='Enter an event code.'; render(); return; }
+  location.search = '?event=' + code;
+}
+function syncSlug(manual){
+  const nameEl = document.getElementById('c_name');
+  const slugEl = document.getElementById('c_slug');
+  if (!manual) slugEl.value = cleanSlug(nameEl.value, true);
+  else slugEl.value = cleanSlug(slugEl.value, true);
+  document.getElementById('c_link').textContent =
+    location.origin + location.pathname + '?event=' + (slugEl.value || '‚Ä¶');
+}
+async function createEvent(){
+  if (busy) return;
+  const btn = document.getElementById('c_go');
+  const name = document.getElementById('c_name').value.trim();
+  const slug = cleanSlug(document.getElementById('c_slug').value);
+  const pwd  = document.getElementById('c_pwd').value;
+  const size = parseInt(document.getElementById('c_size').value) || 16;
+  const preset = document.getElementById('c_preset').value;
+
+  if (!name){ landErr='Give the event a name.'; render(); return; }
+  if (slug.length < 3){ landErr='Event code needs at least 3 characters (letters, numbers and dashes).'; render(); return; }
+  if (!pwd){ landErr='Set a captain password ‚Äî you cannot add one later without the owner resetting it.'; render(); return; }
+
+  busy = true; if (btn){ btn.disabled = true; btn.textContent = 'Creating‚Ä¶'; }
+  try{
+    if (!localMode){
+      const exists = await db.ref('events/'+slug+'/meta').once('value');
+      if (exists.val() !== null){
+        landErr = 'That event code is already taken. Pick another.';
+        busy = false; render(); return;
+      }
+    } else if (localStorage.getItem('golfcup_'+slug+'_meta')){
+      landErr = 'That event code already exists on this device. Pick another.';
+      busy = false; render(); return;
+    }
+    const m = normMeta({
+      eventName: name,
+      teamA: { name: document.getElementById('c_an').value.trim() || 'Team A', color: document.getElementById('c_ac').value },
+      teamB: { name: document.getElementById('c_bn').value.trim() || 'Team B', color: document.getElementById('c_bc').value },
+      rosterSize: size,
+      sessions: PRESETS[preset].sessions.map((s,i)=>({id:'s'+(i+1), ...s})),
+      createdAt: Date.now()
+    });
+    m.auth = await makeAuth(pwd);
+    meta = m;
+    const st = defaultState();
+    if (localMode){
+      localStorage.setItem('golfcup_'+slug+'_meta', JSON.stringify(m));
+      localStorage.setItem('golfcup_'+slug, JSON.stringify(st));
+    } else {
+      await db.ref('events/'+slug).set({ meta: m, state: st });
+    }
+    location.search = '?event=' + slug;
+  }catch(e){
+    landErr = 'Could not create the event: ' + (e && e.message ? e.message : e);
+    busy = false; render();
+  }
+}
+
+/* ---------- Admin unlock ---------- */
+async function tryPwd(){
+  const el = document.getElementById('pwd');
+  const v = el.value;
+  if (!v) return;
+  el.disabled = true;
+  try{
+    /* Master key first ‚Äî works on every event */
+    if (await pbkdf2(normMaster(v), OWNER_KEY.salt, OWNER_KEY.iter) === OWNER_KEY.hash){
+      adminOk = true; isOwner = true; render(); return;
+    }
+    if (!meta.auth){
+      /* First unlock on an event with no password ‚Äî this sets it */
+      const a = await makeAuth(v);
+      meta.auth = a;
+      persistMeta('auth', a);
+      adminOk = true; render(); return;
+    }
+    if (await pbkdf2(v, meta.auth.salt, meta.auth.iter) === meta.auth.hash){
+      adminOk = true; render(); return;
+    }
+    el.disabled = false; el.value=''; el.placeholder='Wrong password'; el.focus();
+  }catch(e){
+    el.disabled = false; el.value=''; el.placeholder='Could not check password';
+  }
+}
+async function changePwd(){
+  const el = document.getElementById('s_pwd');
+  const msg = document.getElementById('pwdmsg');
+  const v = el.value;
+  if (!v){ msg.textContent = 'Enter a password first.'; return; }
+  msg.textContent = 'Saving‚Ä¶';
+  try{
+    const a = await makeAuth(v);
+    meta.auth = a;
+    persistMeta('auth', a);
+    el.value = '';
+    msg.textContent = 'Password updated.';
+  }catch(e){ msg.textContent = 'Failed ‚Äî needs HTTPS.'; }
+}
+
+/* ---------- Meta edits ---------- */
+function setMeta(path, val){
+  const parts = path.split('.');
+  let obj = meta;
+  for (let i=0;i<parts.length-1;i++) obj = obj[parts[i]];
+  obj[parts[parts.length-1]] = val;
+  meta = normMeta(meta);
+  applyTeamColors();
+  /* re-read the normalized value so what we store matches what we show */
+  let out = meta; parts.forEach(p=> out = out[p]);
+  persistMeta(path.replace(/\./g,'/'), out);
+  render();
+}
+function setRosterSize(val){
+  let n = Math.max(2, Math.min(40, parseInt(val) || meta.rosterSize));
+  if (n % 2) n++;
+  if (n === meta.rosterSize){ render(); return; }
+  if (n < meta.rosterSize && !confirm(`Drop to ${n} players per team? Players ${n+1}‚Äì${meta.rosterSize} and their matches are removed, scores included.`)){ render(); return; }
+  meta.rosterSize = n;
+  persistMeta('rosterSize', n);
+  reshape();
+}
+function nextSessId(){
+  let max = 0;
+  meta.sessions.forEach(s=>{ const n = parseInt(String(s.id).replace(/\D/g,'')) || 0; if (n > max) max = n; });
+  return 's' + (max + 1);
+}
+function addSess(team){
+  meta.sessions.push({
+    id: nextSessId(),
+    label: team ? 'Team Session' : 'Singles',
+    day: meta.sessions.length ? meta.sessions[meta.sessions.length-1].day : 1,
+    holes: team ? 9 : 18,
+    team: !!team, tee: true,
+    note: team ? 'Match play. Enter the team score for each hole.' : 'Singles match play. Lower score wins the hole.'
+  });
+  meta.sessions = normSessions(meta.sessions);
+  persistMeta('sessions', meta.sessions);
+  reshape();
+}
+function removeSess(i){
+  const s = meta.sessions[i];
+  if (!confirm(`Remove ‚Äú${s.label}‚Äù? Its pairings and scores are deleted.`)) return;
+  meta.sessions.splice(i,1);
+  persistMeta('sessions', meta.sessions);
+  if (selSess === s.id) selSess = null;
+  if (!localMode && stateRef) db.ref('events/'+EVENT_ID+'/state/pairings/'+s.id).set(null);
+  if (state && state.pairings) delete state.pairings[s.id];
+  reshape();
+}
+function moveSess(i, dir){
+  const j = i + dir;
+  if (j < 0 || j >= meta.sessions.length) return;
+  const a = meta.sessions;
+  [a[i], a[j]] = [a[j], a[i]];
+  persistMeta('sessions', a);
+  render();
+}
+function setSess(i, field, val){
+  const s = meta.sessions[i];
+  const before = { team: s.team, holes: s.holes };
+  if (field === 'team') s.team = val === '1' || val === 1 || val === true;
+  else if (field === 'tee') s.tee = !!(val === 1 || val === '1' || val === true);
+  else if (field === 'day' || field === 'holes') s[field] = parseInt(val) || s[field];
+  else s[field] = val;
+  meta.sessions = normSessions(meta.sessions);
+  persistMeta('sessions', meta.sessions);
+  /* changing team format changes how many matches exist */
+  if (field === 'team' && before.team !== meta.sessions[i].team) reshape();
+  else render();
+}
+
+/* ---------- Scores / rosters / pairings ---------- */
+function setScore(sess, idx, team, hole, val){
+  const v = val === '' ? null : Math.max(1, Math.min(15, parseInt(val)||0)) || null;
+  if (v === null) delete state.pairings[sess][idx].scores[team]['h'+hole];
+  else state.pairings[sess][idx].scores[team]['h'+hole] = v;
+  persist(`pairings/${sess}/${idx}/scores/${team}/h${hole}`, v);
+  renderPreservingFocus();
+}
+function setTee(sess, idx, val){
+  const v = val.trim();
+  state.pairings[sess][idx].tee = v;
+  persist(`pairings/${sess}/${idx}/tee`, v === '' ? null : v);
+}
+function fillTees(sessId){
+  const first = prompt('First tee time (e.g. 8:00 AM):', '8:00 AM');
+  if (first === null) return;
+  const start = parseTee(first);
+  if (start === null){ alert('Could not read that time. Try something like "8:00 AM" or "08:00".'); return; }
+  const gapRaw = prompt('Minutes between groups:', '10');
+  if (gapRaw === null) return;
+  const gap = parseInt(gapRaw);
+  if (!gap || gap < 1){ alert('Enter a whole number of minutes.'); return; }
+  state.pairings[sessId].forEach((m,i)=>{
+    const v = fmtTee(start + i*gap);
+    m.tee = v;
+    persist(`pairings/${sessId}/${i}/tee`, v);
+  });
+  render();
+}
+function parseTee(s){
+  const t = String(s).trim().match(/^(\d{1,2}):?(\d{2})\s*(am|pm)?$/i);
+  if (!t) return null;
+  let h = parseInt(t[1]); const min = parseInt(t[2]);
+  const ap = t[3] ? t[3].toLowerCase() : '';
+  if (min > 59) return null;
+  if (ap){
+    if (h < 1 || h > 12) return null;
+    if (ap === 'pm' && h !== 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+  } else if (h > 23) return null;
+  return h*60 + min;
+}
+function fmtTee(mins){
+  const m = ((mins % 1440) + 1440) % 1440;
+  let h = Math.floor(m/60);
+  const ap = h < 12 ? 'AM' : 'PM';
+  h = h % 12; if (h === 0) h = 12;
+  return h + ':' + String(m % 60).padStart(2,'0') + ' ' + ap;
+}
+function setRoster(team, idx, val){
+  const old = state[team][idx];
+  state[team][idx] = val;
+  /* propagate the rename into existing pairings */
+  SESSIONS().forEach(s=>{
+    (state.pairings[s.id]||[]).forEach((m,i)=>{
+      ['jb1','jb2','ua1','ua2'].forEach(f=>{
+        if (m[f] === old && old){ m[f] = val; persist(`pairings/${s.id}/${i}/${f}`, val); }
+      });
+    });
+  });
+  persist(`${team}/${idx}`, val);
+}
+function setPair(sess, idx, field, val){
+  state.pairings[sess][idx][field] = val;
+  persist(`pairings/${sess}/${idx}/${field}`, val);
+  render();
+}
+function autoPair(sessId){
+  const s = sessById(sessId);
+  state.pairings[sessId] = state.pairings[sessId].map((m,i)=> s.team
+    ? {...m, jb1:state.jb[i*2]||'', jb2:state.jb[i*2+1]||'', ua1:state.ua[i*2]||'', ua2:state.ua[i*2+1]||''}
+    : {...m, jb1:state.jb[i]||'', ua1:state.ua[i]||''});
+  persist(`pairings/${sessId}`, state.pairings[sessId]);
+  render();
+}
+function clearSession(sessId){
+  if (!confirm('Clear all scores for this session?')) return;
+  (state.pairings[sessId]||[]).forEach((m,i)=>{
+    m.scores = {jb:{}, ua:{}};
+    persist(`pairings/${sessId}/${i}/scores`, null);
+  });
+  render();
+}
+function clearAll(){
+  if (!confirm('Clear ALL scores for the entire event?')) return;
+  SESSIONS().forEach(s=> (state.pairings[s.id]||[]).forEach((m,i)=>{
+    m.scores = {jb:{}, ua:{}};
+    persist(`pairings/${s.id}/${i}/scores`, null);
+  }));
+  render();
+}
+
+function renderPreservingFocus(){
+  const a = document.activeElement;
+  const id = a && a.id ? a.id : null;
+  const val = id ? a.value : null;
+  render();
+  if (id){
+    const el = document.getElementById(id);
+    if (el){ el.focus(); if (el.tagName==='INPUT' && document.activeElement===el && el.value!==val && val!==null) el.value = val; }
+  }
+}
+
+/* ---------- Boot ---------- */
+(function boot(){
+  /* ?new=slug from the "event not found" screen opens the create form prefilled */
+  const wanted = cleanSlug(new URLSearchParams(location.search).get('new'));
+  if (!EVENT_ID && wanted){ landTab = 'create'; }
+  applyTeamColors();
+  render();
+  attach();
+  if (!EVENT_ID && wanted){
+    setTimeout(()=>{
+      const slugEl = document.getElementById('c_slug');
+      if (slugEl){ slugEl.value = wanted; syncSlug(true); }
+    }, 0);
+  }
+})();
+</script>
+</body>
+</html>
