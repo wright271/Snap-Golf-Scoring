@@ -655,8 +655,6 @@ function renderLanding(){
     </div>
     ${localMode?`<div class="banner"><b>Local mode:</b> Firebase config not set, so events live in this browser only and nothing syncs. Fine for a test drive ‚Äî paste your config near the top of this file to go live.</div>`:''}
     ${!cryptoOk?`<div class="banner bad"><b>Insecure context:</b> password hashing needs HTTPS. Open this page over https:// (GitHub Pages is fine) ‚Äî on file:// the admin password can't be set.</div>`:''}
-    ${landErr?`<div class="banner bad">${esc(landErr)}</div>`:''}
-
     <div class="atabs">
       <button class="atab ${landTab==='join'?'on':''}" onclick="setLandTab('join')">Join an event</button>
       <button class="atab ${landTab==='create'?'on':''}" onclick="setLandTab('create')">Create an event</button>
@@ -671,6 +669,7 @@ function renderLanding(){
           <button class="btn" onclick="joinEvent()">Go</button>
         </div>
         <div class="hint">Your captain will have sent you a link. The code is the part after <code>?event=</code>.</div>
+        ${landErr?`<div class="banner bad" style="margin:0">${esc(landErr)}</div>`:''}
       </div>
     </div>` : `
     <div class="sec">
@@ -708,7 +707,7 @@ function renderLanding(){
         <div>
           <label for="c_size">Players per team</label>
           <input type="number" id="c_size" value="16" min="2" max="40" step="2">
-          <div class="hint" style="margin-top:5px">Even numbers only. Team sessions run ${'{'}size √∑ 2${'}'} matches, singles run one per player.</div>
+          <div class="hint" style="margin-top:5px">Even numbers only. Team sessions run half this many matches; singles run one per player.</div>
         </div>
       </div>
     </div>
@@ -730,13 +729,14 @@ function renderLanding(){
       <div class="sec-t">Captain password</div>
       <div class="fgrid">
         <div>
-          <label for="c_pwd">Password</label>
+          <label for="c_pwd">Password <span style="color:var(--ua)">‚Äî required</span></label>
           <input type="password" id="c_pwd" placeholder="Something your captains will remember">
           <div class="hint" style="margin-top:5px">Needed to edit rosters, pairings and scores setup. Stored hashed ‚Äî it cannot be looked up, only reset. Write it down.</div>
         </div>
       </div>
     </div>
 
+    ${landErr?`<div class="banner bad" id="c_err">${esc(landErr)}</div>`:''}
     <div style="margin:16px 0 30px">
       <button class="btn" id="c_go" onclick="createEvent()" ${!cryptoOk?'disabled':''}>Create event</button>
     </div>`}
@@ -1103,9 +1103,18 @@ async function createEvent(){
   const size = parseInt(document.getElementById('c_size').value) || 16;
   const preset = document.getElementById('c_preset').value;
 
-  if (!name){ landErr='Give the event a name.'; render(); return; }
-  if (slug.length < 3){ landErr='Event code needs at least 3 characters (letters, numbers and dashes).'; render(); return; }
-  if (!pwd){ landErr='Set a captain password ‚Äî you cannot add one later without the owner resetting it.'; render(); return; }
+  /* Put the message on screen AND take the user to the field it's about ‚Äî
+     the create form is taller than a phone screen, so an error rendered
+     elsewhere reads as "nothing happened". */
+  const fail = (msg, id)=>{
+    landErr = msg;
+    render();
+    const el = document.getElementById(id);
+    if (el){ el.scrollIntoView({block:'center'}); el.focus(); }
+  };
+  if (!name){ return fail('Give the event a name.', 'c_name'); }
+  if (slug.length < 3){ return fail('Event code needs at least 3 characters (letters, numbers and dashes).', 'c_slug'); }
+  if (!pwd){ return fail('Set a captain password ‚Äî you cannot add one later without the owner resetting it.', 'c_pwd'); }
 
   busy = true; if (btn){ btn.disabled = true; btn.textContent = 'Creating‚Ä¶'; }
   try{
