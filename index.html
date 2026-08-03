@@ -768,7 +768,7 @@ function renderLanding(){
 
     ${landErr?`<div class="banner bad" id="c_err">${esc(landErr)}</div>`:''}
     <div style="margin:16px 0 30px">
-      <button class="btn" id="c_go" onclick="createEvent()" ${!cryptoOk?'disabled':''}>Create event</button>
+      <button class="btn" id="c_go" onclick="submitNewEvent()" ${!cryptoOk?'disabled':''}>Create event</button>
     </div>`}
   </div>`;
 }
@@ -1118,7 +1118,10 @@ function joinEvent(){
   if (!code){ landErr='Enter an event code.'; render(); return; }
   location.search = '?event=' + code;
 }
-async function createEvent(){
+/* NOT named createEvent: inline on* handlers resolve names against `document`
+   before `window`, and document.createEvent is a built-in DOM API. A handler
+   calling createEvent() would silently hit that instead of this function. */
+async function submitNewEvent(){
   if (busy) return;
   const btn = document.getElementById('c_go');
   const name = newEvt.name.trim();
