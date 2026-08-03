@@ -588,9 +588,32 @@ let scoring = null;
 let adminOk = false, isOwner = false;
 let adminTab = 'rosters';
 let landTab = 'join';
-let landPreset = 'ryder';
 let landErr = '';
 let busy = false;
+/* The create form is re-rendered on every error, so its fields need somewhere
+   to live. Without this, a failed submit wipes everything the user typed. */
+let newEvt = {
+  name:'', slug:'', slugTouched:false, code:'',
+  teamA:'Team A', teamB:'Team B', colorA:'#0033a0', colorB:'#c41e3a',
+  size:'16', preset:'ryder', pwd:'', pwd2:''
+};
+function setNew(k, v){
+  if (k === 'slug'){
+    newEvt.slug = cleanSlug(v, true);
+    newEvt.slugTouched = newEvt.slug !== '';
+    const el = document.getElementById('c_slug');
+    if (el && el.value !== newEvt.slug) el.value = newEvt.slug;
+  } else {
+    newEvt[k] = v;
+    if (k === 'name' && !newEvt.slugTouched){
+      newEvt.slug = cleanSlug(v, true);
+      const el = document.getElementById('c_slug');
+      if (el) el.value = newEvt.slug;
+    }
+  }
+  const link = document.getElementById('c_link');
+  if (link) link.textContent = location.origin + location.pathname + '?event=' + (newEvt.slug || '\u2026');
+}
 
 /* ============================================================
    RENDER
@@ -665,7 +688,8 @@ function renderLanding(){
       <div class="sec-t">Event code</div>
       <div class="fgrid">
         <div class="join-row">
-          <input type="text" id="j_code" placeholder="e.g. pinehurst-cup-2026" onkeydown="if(event.key==='Enter')joinEvent()">
+          <input type="text" id="j_code" placeholder="e.g. pinehurst-cup-2026" value="${esc(newEvt.code)}"
+            oninput="setNew('code',this.value)" onkeydown="if(event.key==='Enter')joinEvent()">
           <button class="btn" onclick="joinEvent()">Go</button>
         </div>
         <div class="hint">Your captain will have sent you a link. The code is the part after <code>?event=</code>.</div>
@@ -677,12 +701,12 @@ function renderLanding(){
       <div class="fgrid">
         <div>
           <label for="c_name">Event name</label>
-          <input type="text" id="c_name" placeholder="Pinehurst Cup 2026" oninput="syncSlug()">
+          <input type="text" id="c_name" placeholder="Pinehurst Cup 2026" value="${esc(newEvt.name)}" oninput="setNew('name',this.value)">
         </div>
         <div>
           <label for="c_slug">Event code</label>
-          <input type="text" id="c_slug" placeholder="pinehurst-cup-2026" oninput="syncSlug(true)">
-          <div class="hint" style="margin-top:5px">Share link: <span class="slug-preview" id="c_link">${esc(location.origin+location.pathname)}?event=\u2026</span></div>
+          <input type="text" id="c_slug" placeholder="pinehurst-cup-2026" value="${esc(newEvt.slug)}" oninput="setNew('slug',this.value)">
+          <div class="hint" style="margin-top:5px">Share link: <span class="slug-preview" id="c_link">${esc(location.origin+location.pathname)}?event=${esc(newEvt.slug||'\u2026')}</span></div>
         </div>
       </div>
     </div>
@@ -693,20 +717,20 @@ function renderLanding(){
         <div class="frow">
           <div>
             <label for="c_an">Team A name</label>
-            <input type="text" id="c_an" value="Team A">
+            <input type="text" id="c_an" value="${esc(newEvt.teamA)}" oninput="setNew('teamA',this.value)">
           </div>
           <div>
             <label for="c_bn">Team B name</label>
-            <input type="text" id="c_bn" value="Team B">
+            <input type="text" id="c_bn" value="${esc(newEvt.teamB)}" oninput="setNew('teamB',this.value)">
           </div>
         </div>
         <div class="frow">
-          <div class="color-row"><input type="color" id="c_ac" value="#0033a0"><label style="margin:0">Team A color</label></div>
-          <div class="color-row"><input type="color" id="c_bc" value="#c41e3a"><label style="margin:0">Team B color</label></div>
+          <div class="color-row"><input type="color" id="c_ac" value="${esc(newEvt.colorA)}" oninput="setNew('colorA',this.value)"><label style="margin:0">Team A color</label></div>
+          <div class="color-row"><input type="color" id="c_bc" value="${esc(newEvt.colorB)}" oninput="setNew('colorB',this.value)"><label style="margin:0">Team B color</label></div>
         </div>
         <div>
           <label for="c_size">Players per team</label>
-          <input type="number" id="c_size" value="16" min="2" max="40" step="2">
+          <input type="number" id="c_size" value="${esc(newEvt.size)}" min="2" max="40" step="2" oninput="setNew('size',this.value)">
           <div class="hint" style="margin-top:5px">Even numbers only. Team sessions run half this many matches; singles run one per player.</div>
         </div>
       </div>
@@ -717,8 +741,8 @@ function renderLanding(){
       <div class="fgrid">
         <div>
           <label for="c_preset">Starting format</label>
-          <select id="c_preset">
-            ${Object.keys(PRESETS).map(k=>`<option value="${k}" ${k===landPreset?'selected':''}>${esc(PRESETS[k].label)}</option>`).join('')}
+          <select id="c_preset" onchange="setNew('preset',this.value)">
+            ${Object.keys(PRESETS).map(k=>`<option value="${k}" ${k===newEvt.preset?'selected':''}>${esc(PRESETS[k].label)}</option>`).join('')}
           </select>
           <div class="hint" style="margin-top:5px">You can add, remove and rename sessions any time from Admin \u2192 Event Setup.</div>
         </div>
@@ -730,7 +754,13 @@ function renderLanding(){
       <div class="fgrid">
         <div>
           <label for="c_pwd">Password <span style="color:var(--ua)">\u2014 required</span></label>
-          <input type="password" id="c_pwd" placeholder="Something your captains will remember">
+          <input type="password" id="c_pwd" placeholder="Something your captains will remember"
+            value="${esc(newEvt.pwd)}" oninput="setNew('pwd',this.value)">
+        </div>
+        <div>
+          <label for="c_pwd2">Confirm password</label>
+          <input type="password" id="c_pwd2" placeholder="Type it again"
+            value="${esc(newEvt.pwd2)}" oninput="setNew('pwd2',this.value)">
           <div class="hint" style="margin-top:5px">Needed to edit rosters, pairings and scores setup. Stored hashed \u2014 it cannot be looked up, only reset. Write it down.</div>
         </div>
       </div>
@@ -1082,30 +1112,25 @@ function closeScore(){ scoring=null; render(); }
 
 /* ---------- Landing actions ---------- */
 function joinEvent(){
-  const code = cleanSlug(document.getElementById('j_code').value);
+  const el = document.getElementById('j_code');
+  if (el) newEvt.code = el.value;
+  const code = cleanSlug(newEvt.code);
   if (!code){ landErr='Enter an event code.'; render(); return; }
   location.search = '?event=' + code;
-}
-function syncSlug(manual){
-  const nameEl = document.getElementById('c_name');
-  const slugEl = document.getElementById('c_slug');
-  if (!manual) slugEl.value = cleanSlug(nameEl.value, true);
-  else slugEl.value = cleanSlug(slugEl.value, true);
-  document.getElementById('c_link').textContent =
-    location.origin + location.pathname + '?event=' + (slugEl.value || '\u2026');
 }
 async function createEvent(){
   if (busy) return;
   const btn = document.getElementById('c_go');
-  const name = document.getElementById('c_name').value.trim();
-  const slug = cleanSlug(document.getElementById('c_slug').value);
-  const pwd  = document.getElementById('c_pwd').value;
-  const size = parseInt(document.getElementById('c_size').value) || 16;
-  const preset = document.getElementById('c_preset').value;
+  const name = newEvt.name.trim();
+  const slug = cleanSlug(newEvt.slug);
+  const pwd  = newEvt.pwd;
+  const size = parseInt(newEvt.size) || 16;
+  const preset = newEvt.preset;
 
   /* Put the message on screen AND take the user to the field it's about -
      the create form is taller than a phone screen, so an error rendered
-     elsewhere reads as "nothing happened". */
+     elsewhere reads as "nothing happened". Values come from newEvt, so a
+     failed submit keeps everything already typed. */
   const fail = (msg, id)=>{
     landErr = msg;
     render();
@@ -1115,6 +1140,7 @@ async function createEvent(){
   if (!name){ return fail('Give the event a name.', 'c_name'); }
   if (slug.length < 3){ return fail('Event code needs at least 3 characters (letters, numbers and dashes).', 'c_slug'); }
   if (!pwd){ return fail('Set a captain password \u2014 you cannot add one later without the owner resetting it.', 'c_pwd'); }
+  if (newEvt.pwd2 !== pwd){ return fail('The two passwords do not match.', 'c_pwd2'); }
 
   busy = true; if (btn){ btn.disabled = true; btn.textContent = 'Creating\u2026'; }
   try{
@@ -1130,8 +1156,8 @@ async function createEvent(){
     }
     const m = normMeta({
       eventName: name,
-      teamA: { name: document.getElementById('c_an').value.trim() || 'Team A', color: document.getElementById('c_ac').value },
-      teamB: { name: document.getElementById('c_bn').value.trim() || 'Team B', color: document.getElementById('c_bc').value },
+      teamA: { name: newEvt.teamA.trim() || 'Team A', color: newEvt.colorA },
+      teamB: { name: newEvt.teamB.trim() || 'Team B', color: newEvt.colorB },
       rosterSize: size,
       sessions: PRESETS[preset].sessions.map((s,i)=>({id:'s'+(i+1), ...s})),
       createdAt: Date.now()
@@ -1372,16 +1398,14 @@ function renderPreservingFocus(){
 (function boot(){
   /* ?new=slug from the "event not found" screen opens the create form prefilled */
   const wanted = cleanSlug(new URLSearchParams(location.search).get('new'));
-  if (!EVENT_ID && wanted){ landTab = 'create'; }
+  if (!EVENT_ID && wanted){
+    landTab = 'create';
+    newEvt.slug = wanted;
+    newEvt.slugTouched = true;
+  }
   applyTeamColors();
   render();
   attach();
-  if (!EVENT_ID && wanted){
-    setTimeout(()=>{
-      const slugEl = document.getElementById('c_slug');
-      if (slugEl){ slugEl.value = wanted; syncSlug(true); }
-    }, 0);
-  }
 })();
 </script>
 </body>
